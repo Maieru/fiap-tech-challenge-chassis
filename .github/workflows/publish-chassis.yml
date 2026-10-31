@@ -1,7 +1,7 @@
 name: Publish chassis
 on:
   push:
-    tags: ['chassis-v*']
+    tags: ['v*']
 
 permissions:
   contents: read
@@ -13,6 +13,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    env:
+      NUGET_USER: ${{ vars.NUGET_USER }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,15 +22,28 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - name: Validate release tag, main ancestry and NuGet account
+      - name: Validate release tag and select package version
         shell: bash
-        env:
-          NUGET_USER: ${{ vars.NUGET_USER }}
         run: |
-          [[ "$GITHUB_REF_NAME" =~ ^chassis-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          git merge-base --is-ancestor HEAD origin/main
-          test -n "$NUGET_USER" || { echo 'Configure NUGET_USER and Trusted Publishing first'; exit 1; }
-          echo "CHASSIS_VERSION=${GITHUB_REF_NAME#chassis-v}" >> "$GITHUB_ENV"
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "::error::Invalid release tag '$GITHUB_REF_NAME'. Expected vX.Y.Z, for example v0.1.0."
+            exit 1
+          fi
+          echo "CHASSIS_VERSION=${BASH_REMATCH[1]}" >> "$GITHUB_ENV"
+      - name: Require release commit on main
+        shell: bash
+        run: |
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::Tag '$GITHUB_REF_NAME' points to a commit outside main. Merge the release commit into main before tagging."
+            exit 1
+          fi
+      - name: Require NuGet account
+        shell: bash
+        run: |
+          if [[ -z "${NUGET_USER//[[:space:]]/}" ]]; then
+            echo '::error::Configure NUGET_USER under repository Settings > Secrets and variables > Actions > Variables with your NuGet.org profile name.'
+            exit 1
+          fi
       - uses: ./.github/actions/prepare-chassis
         with:
           version: ${{ env.CHASSIS_VERSION }}
@@ -55,7 +70,7 @@ jobs:
         uses: NuGet/login@v1
         id: login
         with:
-          user: ${{ vars.NUGET_USER }}
+          user: ${{ env.NUGET_USER }}
       - name: Publish immutable package
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
