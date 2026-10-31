@@ -1,0 +1,89 @@
+name: Chassis CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chassis-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Build, test and verify package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Select candidate version
+        id: version
+        run: echo "value=0.1.0-ci.$GITHUB_RUN_ID.$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/prepare-chassis
+        with:
+          version: ${{ steps.version.outputs.value }}
+      - name: Build solution
+        env:
+          CHASSIS_VERSION: ${{ steps.version.outputs.value }}
+        run: dotnet build Chassis.slnx -c Release -p:ChassisVersion="$CHASSIS_VERSION"
+      - name: Run tests and collect coverage
+        shell: pwsh
+        run: |
+          dotnet test Chassis.slnx `
+            --configuration Release `
+            --no-build `
+            --no-restore `
+            --settings coverage.runsettings `
+            --collect:'XPlat Code Coverage;Format=cobertura,opencover' `
+            --logger trx `
+            --results-directory artifacts/test-results/chassis
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: ./.github/actions/coverage
+        with:
+          reports: artifacts/test-results/chassis/**/coverage.cobertura.xml
+          assemblies: '+Maieru.FiapTechChallenge.Chassis;-*.Tests*;-*.Sample'
+          output: artifacts/coverage/chassis
+      - uses: ./.github/actions/verify-chassis-package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chassis-candidate
+          path: artifacts/packages/*
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-chassis
+          path: |
+            artifacts/test-results/
+            artifacts/coverage/
+            artifacts/chassis-sample*
+
+  quality:
+    name: SonarQube
+    needs: verify
+    uses: ./.github/workflows/sonarqube.yml
+    with:
+      chassis-version: ${{ needs.verify.outputs.version }}
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  ci-required:
+    name: ci-required
+    if: always()
+    needs: [verify, quality]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require verification and quality success
+        env:
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
+        run: test "$VERIFY_RESULT" = success && test "$QUALITY_RESULT" = success

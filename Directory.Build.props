@@ -1,0 +1,5 @@
+<Project>
+  <PropertyGroup>
+    <ChassisVersion Condition="'$(ChassisVersion)' == ''">0.1.0</ChassisVersion>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,24 @@
+name: Verify packaged chassis consumer
+description: Run the sample built from PackageReference and check HTTP, correlation and JSON logs.
+runs:
+  using: composite
+  steps:
+    - name: Run packaged consumer
+      shell: bash
+      run: |
+        dotnet samples/Maieru.FiapTechChallenge.Chassis.Sample/bin/Release/net10.0/Maieru.FiapTechChallenge.Chassis.Sample.dll \
+          --urls http://127.0.0.1:5099 > artifacts/chassis-sample.log 2>&1 &
+        sample_pid=$!
+        trap 'kill "$sample_pid" 2>/dev/null || true' EXIT
+        curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused \
+          http://127.0.0.1:5099/health/ready | jq -e '.status == "Healthy"'
+        curl --fail --silent --show-error -H 'X-Correlation-ID: nuget-consumer-smoke' \
+          -o artifacts/chassis-sample-response.json -w '%{header_json}' \
+          http://127.0.0.1:5099/ > artifacts/chassis-sample-headers.json
+        jq -e '."x-correlation-id" == ["nuget-consumer-smoke"]' artifacts/chassis-sample-headers.json
+        jq -e '.service == "chassis-sample"' artifacts/chassis-sample-response.json
+        kill "$sample_pid"
+        wait "$sample_pid" || true
+        trap - EXIT
+        jq -s -e 'length > 0 and all(.[]; has("LogLevel")) and any(.[]; tostring | contains("nuget-consumer-smoke"))' \
+          artifacts/chassis-sample.log

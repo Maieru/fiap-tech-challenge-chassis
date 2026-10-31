@@ -1,0 +1,18 @@
+name: Prepare chassis package
+description: Pack an immutable local candidate consumed through PackageReference.
+inputs:
+  version:
+    description: NuGet version for this build or release.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Pack chassis into local feed
+      shell: bash
+      env:
+        PACKAGE_VERSION: ${{ inputs.version }}
+      run: |
+        [[ "$PACKAGE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]
+        mkdir -p artifacts/packages
+        dotnet pack src/Maieru.FiapTechChallenge.Chassis/Maieru.FiapTechChallenge.Chassis.csproj \
+          -c Release -o artifacts/packages -p:Version="$PACKAGE_VERSION"

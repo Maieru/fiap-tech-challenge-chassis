@@ -1,0 +1,71 @@
+name: Publish chassis
+on:
+  push:
+    tags: ['chassis-v*']
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Validate release tag, main ancestry and NuGet account
+        shell: bash
+        env:
+          NUGET_USER: ${{ vars.NUGET_USER }}
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^chassis-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          git merge-base --is-ancestor HEAD origin/main
+          test -n "$NUGET_USER" || { echo 'Configure NUGET_USER and Trusted Publishing first'; exit 1; }
+          echo "CHASSIS_VERSION=${GITHUB_REF_NAME#chassis-v}" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/prepare-chassis
+        with:
+          version: ${{ env.CHASSIS_VERSION }}
+      - name: Build chassis solution
+        run: dotnet build Chassis.slnx -c Release -p:ChassisVersion="$CHASSIS_VERSION"
+      - name: Test chassis solution
+        shell: pwsh
+        run: |
+          dotnet test Chassis.slnx `
+            --configuration Release `
+            --no-build `
+            --no-restore `
+            --settings coverage.runsettings `
+            --collect:'XPlat Code Coverage;Format=cobertura,opencover' `
+            --logger trx --results-directory artifacts/test-results/chassis
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: ./.github/actions/coverage
+        with:
+          reports: artifacts/test-results/chassis/**/coverage.cobertura.xml
+          assemblies: '+Maieru.FiapTechChallenge.Chassis;-*.Tests*;-*.Sample'
+          output: artifacts/coverage/chassis
+      - uses: ./.github/actions/verify-chassis-package
+      - name: Exchange GitHub OIDC token for temporary NuGet key
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ vars.NUGET_USER }}
+      - name: Publish immutable package
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push "artifacts/packages/Maieru.FiapTechChallenge.Chassis.$CHASSIS_VERSION.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: chassis-release
+          path: |
+            artifacts/packages/*
+            artifacts/test-results/
+            artifacts/coverage/
+            artifacts/chassis-sample*
