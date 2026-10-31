@@ -23,7 +23,3 @@ O CI valida testes, cobertura mínima de 80%, consumidor HTTP e Sonar. Configure
 | Variable | `NUGET_USER` | Nome do perfil NuGet |
 
 A tag `chassis-v0.1.0`, apontando para um commit revisado em `main`, aciona `publish-chassis.yml`. A política NuGet Trusted Publishing deve usar owner **`Maieru`**, repository **`fiap-tech-challenge-chassis`**, workflow **`publish-chassis.yml`**, environment vazio e pacote **`Maieru.FiapTechChallenge.Chassis`**. A publicação usa OIDC, sem API key permanente.
-
-Os serviços consomem versões públicas explícitas desse pacote. Licença MIT.
-
-Configure a proteção de `main` com PR e o check obrigatório `ci-required` após disponibilizar os workflows.
