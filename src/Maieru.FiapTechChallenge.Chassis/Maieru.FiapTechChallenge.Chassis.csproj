@@ -4,7 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>Maieru.FiapTechChallenge.Chassis</PackageId>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <Authors>João Victor Maieru Teixeira</Authors>
     <Description>Technical defaults for the FIAP Tech Challenge services: telemetry, HTTP correlation, health and message envelopes.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
