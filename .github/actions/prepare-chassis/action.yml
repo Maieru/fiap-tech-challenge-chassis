@@ -16,3 +16,5 @@ runs:
         mkdir -p artifacts/packages
         dotnet pack src/Maieru.FiapTechChallenge.Chassis/Maieru.FiapTechChallenge.Chassis.csproj \
           -c Release -o artifacts/packages -p:Version="$PACKAGE_VERSION"
+        dotnet pack src/Maieru.FiapTechChallenge.Messaging.Kafka/Maieru.FiapTechChallenge.Messaging.Kafka.csproj \
+          -c Release -o artifacts/packages -p:Version="$PACKAGE_VERSION" -p:ChassisVersion="$PACKAGE_VERSION"

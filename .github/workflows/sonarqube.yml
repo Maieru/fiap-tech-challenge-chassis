@@ -118,5 +118,5 @@ jobs:
             /d:sonar.cs.opencover.reportsPaths=artifacts/reports/**/coverage.opencover.xml `
             '/d:sonar.exclusions=**/Migrations/**,**/*.feature.cs,**/node_modules/**,**/bin/**,**/obj/**' `
             /d:sonar.scanner.scanAll=false /d:sonar.qualitygate.wait=true
-          dotnet build Chassis.slnx -c Release --no-incremental --disable-build-servers "-p:ChassisVersion=$env:CHASSIS_VERSION"
+          dotnet build Chassis.slnx -c Release --no-incremental --disable-build-servers "-p:ChassisVersion=$env:CHASSIS_VERSION" "-p:KafkaMessagingVersion=$env:CHASSIS_VERSION"
           & $scanner end "/d:sonar.token=$env:SONAR_TOKEN"

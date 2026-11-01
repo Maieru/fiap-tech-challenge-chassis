@@ -1,5 +1,6 @@
 <Project>
   <PropertyGroup>
-    <ChassisVersion Condition="'$(ChassisVersion)' == ''">0.1.0</ChassisVersion>
+    <ChassisVersion Condition="'$(ChassisVersion)' == ''">1.1.0</ChassisVersion>
+    <KafkaMessagingVersion Condition="'$(KafkaMessagingVersion)' == ''">0.1.0</KafkaMessagingVersion>
   </PropertyGroup>
 </Project>
