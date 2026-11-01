@@ -1,9 +1,12 @@
 <Solution>
   <Project Path="src/Maieru.FiapTechChallenge.Chassis/Maieru.FiapTechChallenge.Chassis.csproj" />
+  <Project Path="src/Maieru.FiapTechChallenge.Messaging.Kafka/Maieru.FiapTechChallenge.Messaging.Kafka.csproj" />
   <Folder Name="/Tests/">
+    <Project Path="tests/Maieru.FiapTechChallenge.Messaging.Kafka.Tests/Maieru.FiapTechChallenge.Messaging.Kafka.Tests.csproj" />
     <Project Path="tests/Maieru.FiapTechChallenge.Chassis.Tests/Maieru.FiapTechChallenge.Chassis.Tests.csproj" />
   </Folder>
   <Folder Name="/Samples/">
+    <Project Path="samples/Maieru.FiapTechChallenge.Messaging.Sample/Maieru.FiapTechChallenge.Messaging.Sample.csproj" />
     <Project Path="samples/Maieru.FiapTechChallenge.Chassis.Sample/Maieru.FiapTechChallenge.Chassis.Sample.csproj" />
   </Folder>
 </Solution>

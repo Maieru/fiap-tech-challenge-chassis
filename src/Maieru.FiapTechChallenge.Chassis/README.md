@@ -19,5 +19,10 @@ Missing/invalid correlation IDs are replaced. Exception responses expose no inte
 `MessageEnvelope<T>` is only a serializable contract: version/payload validation, delivery,
 ordering, idempotency, retries and transactions remain responsibilities of the service.
 
+Version 1.1.0 also exposes IMessagingService.PublishAsync(topic, key, envelope, cancellationToken).
+The interface has no Kafka dependency. The separate Maieru.FiapTechChallenge.Messaging.Kafka package
+implements confirmed publication; database coordination remains in the use case.
+See the [messaging standard](https://github.com/Maieru/fiap-tech-challenge/blob/main/docs/arquitetura/mensageria.md).
+
 Consumers pin a NuGet version. MIT license. Source and setup:
 https://github.com/Maieru/fiap-tech-challenge-chassis

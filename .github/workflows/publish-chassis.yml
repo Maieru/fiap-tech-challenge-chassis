@@ -48,7 +48,7 @@ jobs:
         with:
           version: ${{ env.CHASSIS_VERSION }}
       - name: Build chassis solution
-        run: dotnet build Chassis.slnx -c Release -p:ChassisVersion="$CHASSIS_VERSION"
+        run: dotnet build Chassis.slnx -c Release -p:ChassisVersion="$CHASSIS_VERSION" -p:KafkaMessagingVersion="$CHASSIS_VERSION"
       - name: Test chassis solution
         shell: pwsh
         run: |

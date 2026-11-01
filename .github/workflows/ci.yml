@@ -35,9 +35,13 @@ jobs:
       - name: Build solution
         env:
           CHASSIS_VERSION: ${{ steps.version.outputs.value }}
-        run: dotnet build Chassis.slnx -c Release -p:ChassisVersion="$CHASSIS_VERSION"
+        run: dotnet build Chassis.slnx -c Release -p:ChassisVersion="$CHASSIS_VERSION" -p:KafkaMessagingVersion="$CHASSIS_VERSION"
+      - name: Start isolated Kafka
+        run: docker compose -f tests/kafka.compose.yaml up -d --wait --wait-timeout 120
       - name: Run tests and collect coverage
         shell: pwsh
+        env:
+          KAFKA_TEST_BOOTSTRAP_SERVERS: 127.0.0.1:19092
         run: |
           dotnet test Chassis.slnx `
             --configuration Release `
@@ -51,9 +55,14 @@ jobs:
       - uses: ./.github/actions/coverage
         with:
           reports: artifacts/test-results/chassis/**/coverage.cobertura.xml
-          assemblies: '+Maieru.FiapTechChallenge.Chassis;-*.Tests*;-*.Sample'
+          assemblies: '+Maieru.FiapTechChallenge.Chassis;+Maieru.FiapTechChallenge.Messaging.Kafka;-*.Tests*;-*.Sample'
           output: artifacts/coverage/chassis
       - uses: ./.github/actions/verify-chassis-package
+      - name: Verify Kafka package consumer
+        run: dotnet run --project samples/Maieru.FiapTechChallenge.Messaging.Sample -c Release --no-build -- 127.0.0.1:19092
+      - name: Stop isolated Kafka
+        if: always()
+        run: docker compose -f tests/kafka.compose.yaml down
       - uses: actions/upload-artifact@v4
         with:
           name: chassis-candidate
